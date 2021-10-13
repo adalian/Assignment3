@@ -1,0 +1,288 @@
+### A Pluto.jl notebook ###
+# v0.14.7
+
+using Markdown
+using InteractiveUtils
+
+# ╔═╡ 453e9e06-2a01-469d-baf5-2b841310ebab
+using Plots
+
+# ╔═╡ 905bb1dc-a9f0-430f-aee6-e3275d48258a
+using GraphRecipes
+
+# ╔═╡ fb8e175c-207b-11ec-297d-2b57956b56df
+# edit the code below to set your name and Cornell ID (i.e. email without @cornell.edu)
+
+student = (name = "Jazzy Doe", cornell_id = "jazz")
+
+# ╔═╡ cb3b5eb6-305f-41c4-a8da-edbb58a20fe8
+md"""
+# Assignment 3
+
+In this group assignment you will create a tutorial notebook to explain the branch and bound solution for the following integer LP. 
+
+```math
+\begin{alignat*}{2}
+& &\max Z = 4x_1 - x_2 & \\
+& & 7x_1 - 2x_2 \leq 14\\
+& & x_2 \leq 3 \\
+& & 2x_1 - 2x_2 \leq 3\\
+& & x_i \in integer, \forall i\\
+\end{alignat*}
+```
+"""
+
+# ╔═╡ 7bf53726-cef2-445d-91f5-60101af0c4d6
+md"""
+## Instructions:
+1. This is a group assignment. You can form a group with up to 3 members. 
+2. The tutorial should show clear contribution from all members of your team.
+3. The tutorial should be informative of the branch and bound algorithm. You should use figures, tables or any other method that will help you to improve the accessibility of the tutorial. The grades will be given for correctness, clarity, delivery and engagement.
+4. The julia notebook should be submitted to Gradescope as a group assignment. 
+"""
+
+# ╔═╡ 7300d719-956b-4d27-99fa-04c5a9a13662
+begin
+	f(x) = (7/2)*x-7
+	g(x) = 3
+	h(x) = x-(3/2)
+	X = -1:6
+	ffill = max(f(X[end]), g(X[1]))
+	gfill = min(f(X[1]), g(X[end]))
+	hfill = max(f(X[1]), f(X[end]))
+	plot(X,f,fill = (ffill,0.5,:red), label = "x2>=(7/2)x1-7", legend=:outertopright)
+	plot!(X,g,fill = (gfill,0.5,:blue), label = "x2<=3")
+	plot!(X,h,fill = (hfill,0.5,:green),label = "x2>=x1-(3/2)")
+	xlabel!("x1")
+	ylabel!("x2")
+end 
+
+# ╔═╡ d630f09f-5c51-4d06-a448-bce286dcb618
+md"""
+##### Integer solutions in the feasible space
+"""
+
+# ╔═╡ fcaaccc5-dca9-43e0-a95b-502062bea962
+begin 
+	a = [2,2,2,1,1,1,1,0,0,0,0,0,-1,-1,-1,-1,-1,-1]
+	b = [3,2,1,3,2,1,0,3,2,1,0,-1,3,2,1,0,-1,-2,-3]
+	opta = Any[2.8]
+	optb = Any[3]
+	scatter!(a,b, color=:blue, legend = :outertopright)
+	scatter!(opta,optb,color=:red,label = "Opt LP Soln") 
+end 
+
+# ╔═╡ 1a1380a7-53a0-4f4f-a01d-2474bbdb42c8
+md"""
+##### First branch 
+###### Add additional constraint to ``x_1``
+"""
+
+# ╔═╡ 4143c7d2-94ff-442f-b7c6-977faf6d02b9
+begin
+	A = [0 0 0 0 ;
+		 0 0 1 1 ;
+		 0 0 0 0 ;
+		 0 0 0 0 ]
+	
+	names = ["(2.8,3) Z=8.42","1","2","3"]
+ 	xpos = [-.5, 0, -.5, .5]
+	ypos = [.5, .5, 0, 0]
+	shapes = [:rect,:circle,:circle,:circle]
+	node_color = [:white,:lightblue,:lightblue,:lightblue]
+	node_size = Any[.5,.5,1,1]
+	edgelabel = Dict()
+	edgelabel[2,3] = "X1<=2"
+	edgelabel[2,4] = "X2>=3"
+end
+
+# ╔═╡ 775592b3-646a-4786-b561-5fa9e25cddc2
+	graphplot(A, names=names, edge_label = edgelabel, nodeshape=shapes, nodesize=.15,nodecolor=node_color,curves=false, x=xpos, y=ypos)
+
+# ╔═╡ 61cfd514-a2a6-4cd9-b30e-5b3af3837cd8
+begin 
+	c(x) = (7/2)*x-7
+	d(x) = 3
+	e(x) = x-(3/2)
+	Y = -1:6
+	cfill = max(f(Y[end]), g(Y[1]))
+	dfill = min(f(Y[1]), g(Y[end]))
+	efill = max(f(Y[1]), f(Y[end]))
+	plot(Y,c,fill = (cfill,0.5,:red),label = "x2>=(7/2)x1-7", legend = :outertopright )
+	plot!(Y,d,fill = (dfill,0.5,:blue), label = "x2<=3")
+	plot!(Y,e,fill = (efill,0.5,:green),label = "x2>=x1-(3/2)")
+	xlabel!("x1")
+	ylabel!("x2")
+	
+	plot!(Y,[-1,2],seriestype="vspan",label="x_1 <= 2",alpha = 0.25, c=:orange)
+	plot!(Y,[3,6],seriestype="vspan",label="x_1 >= 3",alpha = 0.25, c=:yellow)
+end
+
+# ╔═╡ f2510cdb-5a8d-48df-8d86-1b0c12f5f81f
+md"""
+The constraint ``x_1 \geq 3`` has no feasible solutions. 
+"""
+
+# ╔═╡ 52c064c1-5922-4fa2-93dc-e10cf7ef8ae7
+md"""
+###### Additional constraints to ``x_2``
+"""
+
+# ╔═╡ 59c42a41-2d5d-443a-8066-bba5ca415fa7
+begin
+	
+		C = [0 1 1 0 0 0 0 0;
+			 0 0 0 1 1 0 0 0;
+			 0 0 1 0 0 0 0 0;
+			 0 0 0 1 0 0 0 0;
+			 0 0 0 0 1 0 0 0;
+			 0 0 0 0 0 1 0 0;
+	   	 	 0 0 0 0 0 0 1 0 
+			 0 0 0 0 0 0 0 1]
+		
+		names2 = ["1","2","3","4","5","(2.8,3) Z=8.42","(2,0.5) Z=7.5","Infeasible"]
+		shapes2=[:circle,:circle,:circle,:circle,:circle,:rect,:rect,:rect]
+		node_color2 = [:lightblue,:lightblue,:red,:lightblue,:lightblue,:white,:white,:white]
+	 	xpos2 = [0, -1, 1, -2,-0.25, -1.2,-2, 1.75]
+		ypos2 = [1, 0, 0, -1,-1,1,0,0]
+		#nsize = [1,1,1,1,1,1,2]
+		edgelabel2 = Dict()
+		edgelabel2[1,2] = "X1<=2"
+		edgelabel2[1,3] = "X2>=3"
+		edgelabel2[2,4] = "X2<=0"
+		edgelabel2[2,5] = "x2>=1"
+end
+
+# ╔═╡ 3f6c7963-7eca-4eaf-b46c-756dfb5b8f0f
+graphplot(C, names=names2, nodeshape=shapes2, nodesize = 0.5, edge_label = edgelabel2,nodecolor=node_color2,curves=false, x=xpos2, y=ypos2)
+
+# ╔═╡ 83ce999c-8ad1-4874-b47f-feefeb0cad58
+begin
+	i(x) = (7/2)*x-7
+	j(x) = 3
+	k(x) = x-(3/2)
+	W = -1:6
+	ifill = max(f(W[end]), g(W[1]))
+	jfill = min(f(W[1]), g(W[end]))
+	kfill = max(f(W[1]), f(W[end]))
+	plot(W,i,fill = (ifill,0.5,:red),label = "x2>=(7/2)x1-7",xlims=(-1,3),ylims=(-10,10),legend=:outertopright)
+	plot!(W,j,fill = (jfill,0.5,:blue), label = "x2<=3")
+	plot!(W,k,fill = (kfill,0.5,:green),label = "x2>=x1-(3/2)")
+	plot!(W,[-1,2],seriestype="vspan",label="x_1 <= 2",alpha = 0.25, c=:orange)
+	
+	l(x) = 0 
+	m(x) = 1
+	lfill = min(f(W[1]), g(W[end]))
+	mfill = max(f(W[1]), f(W[end]))
+	plot!(W,l,fill = (lfill,0.25,:yellow), label="x_2 <= 0")
+	plot!(W,m,fill = (mfill,0.25,:purple), label="x_2 >= 1")
+end 
+
+# ╔═╡ f4c39451-3b20-4ab3-997c-96f971051dc5
+md"""
+###### Additional constraints to ``x_1``
+"""
+
+# ╔═╡ 32453508-8ced-4b5d-9b39-48f7f15ff730
+begin
+	
+		D = [0 1 1 0 0 0 0 0 0 0 0 0;
+			 0 0 0 1 1 0 0 0 0 0 0 0;
+			 0 0 1 0 0 0 0 0 0 0 0 0;
+			 0 0 0 0 0 1 1 0 0 0 0 0;
+			 0 0 0 0 0 0 0 0 0 0 0 0;
+			 0 0 0 0 0 0 0 0 0 0 0 0;
+	   	 	 0 0 0 0 0 0 0 0 0 0 0 0;
+		     0 0 0 0 0 0 0 0 0 0 0 0;
+			 0 0 0 0 0 0 0 0 0 0 0 0;
+	         0 0 0 0 0 0 0 0 0 0 0 0;
+			 0 0 0 0 0 0 0 0 0 0 0 0;
+			 0 0 0 0 0 0 0 0 0 0 0 1]
+		
+		names3 = ["1","2","3","4","5","6","7","(2.8,3) Z=8.42","(2,0.5) Z=7.5","Infeasible","(1.5,0) Z=6","(2,1) Z=7"]
+		shapes3=[:circle,:circle,:circle,:circle,:circle,:circle,:circle,:rect,:rect,:rect,:rect,:rect]
+		node_color3 = [:lightblue,:lightblue,:red,:lightblue,:lightblue,:white,:white,:white,:white,:white,:white,:white]
+	 	xpos3 = [0, -1, 1, -2,-0.25,-2.75,-1.25,-1.2,-2, 1.75,-2.75, 0.75]
+		ypos3 = [1, 0, 0, -1,-1,-2,-2,1,0,0,-1,-1]
+		#nsize = [1,1,1,1,1,1,2]
+end
+
+# ╔═╡ 8134268b-3121-4eab-a354-329db46113f3
+graphplot(D, names=names3, nodeshape=shapes3, nodesize = 0.5, edge_label = edgelabel2,nodecolor=node_color3,curves=false, x=xpos3, y=ypos3)
+
+# ╔═╡ 60ef9448-8ad4-4aea-bcc0-5398ca61a568
+begin
+	n(x) = (7/2)*x-7
+	o(x) = 3
+	p(x) = x-(3/2)
+	Z = -1:6
+	nfill = max(f(Z[end]), g(Z[1]))
+	ofill = min(f(Z[1]), g(Z[end]))
+	pfill = max(f(Z[1]), f(Z[end]))
+	plot(Z,n,fill = (nfill,0.5,:red),label = "x2>=(7/2)x1-7",xlims=(-1,3),ylims=(-10,10),legend=:outertopright)
+	plot!(Z,o,fill = (ofill,0.5,:blue), label = "x2<=3")
+	plot!(Z,p,fill = (pfill,0.5,:green),label = "x2>=x1-(3/2)")
+	plot!(Z,[-1,1],seriestype="vspan",label="x_1 <= 1",alpha = 0.25, c=:teal)
+	plot!(Z,[2,6],seriestype="vspan",label="x_1 >= 2",alpha = 0.25, c=:orchid)
+	
+	q(x) = 0 
+	qfill = min(f(Z[1]), g(Z[end]))
+	plot!(Z,q,fill = (qfill,0.25,:yellow),label="x_2 <= 0")
+	
+end 
+
+# ╔═╡ a0878762-e5ce-4c84-9cd2-ab60c13f10ec
+md"""
+``x_1 \geq 2`` has no feasible solutions. 
+
+The largest solution for the ``x_1 \leq 1`` is at ``(0,-3/2)`` with the Z value of ``3/2``.
+"""
+
+# ╔═╡ 673c5945-c387-41b4-ba83-50e2e47c3813
+
+
+# ╔═╡ b697f664-068c-4497-93c3-7e45ab39959d
+md"""
+## Contribution
+Please use this space to document the contribution of each group member.
+"""
+
+# ╔═╡ 5d3cb008-43ba-4d2a-8004-698457a627d3
+md"""
+## Citations
+
+If you used any external resource in the process of solving this problem, provide a reference below. These could be other people, websites, datasets, or code examples.
+"""
+
+# ╔═╡ 07ce4885-674e-4dde-a8b1-dad8b8157cb1
+md"""
+List external resources here.
+"""
+
+# ╔═╡ Cell order:
+# ╟─fb8e175c-207b-11ec-297d-2b57956b56df
+# ╟─cb3b5eb6-305f-41c4-a8da-edbb58a20fe8
+# ╟─7bf53726-cef2-445d-91f5-60101af0c4d6
+# ╠═453e9e06-2a01-469d-baf5-2b841310ebab
+# ╠═905bb1dc-a9f0-430f-aee6-e3275d48258a
+# ╠═7300d719-956b-4d27-99fa-04c5a9a13662
+# ╟─d630f09f-5c51-4d06-a448-bce286dcb618
+# ╠═fcaaccc5-dca9-43e0-a95b-502062bea962
+# ╟─1a1380a7-53a0-4f4f-a01d-2474bbdb42c8
+# ╠═4143c7d2-94ff-442f-b7c6-977faf6d02b9
+# ╠═775592b3-646a-4786-b561-5fa9e25cddc2
+# ╟─61cfd514-a2a6-4cd9-b30e-5b3af3837cd8
+# ╟─f2510cdb-5a8d-48df-8d86-1b0c12f5f81f
+# ╟─52c064c1-5922-4fa2-93dc-e10cf7ef8ae7
+# ╠═59c42a41-2d5d-443a-8066-bba5ca415fa7
+# ╠═3f6c7963-7eca-4eaf-b46c-756dfb5b8f0f
+# ╠═83ce999c-8ad1-4874-b47f-feefeb0cad58
+# ╟─f4c39451-3b20-4ab3-997c-96f971051dc5
+# ╠═32453508-8ced-4b5d-9b39-48f7f15ff730
+# ╠═8134268b-3121-4eab-a354-329db46113f3
+# ╠═60ef9448-8ad4-4aea-bcc0-5398ca61a568
+# ╟─a0878762-e5ce-4c84-9cd2-ab60c13f10ec
+# ╠═673c5945-c387-41b4-ba83-50e2e47c3813
+# ╠═b697f664-068c-4497-93c3-7e45ab39959d
+# ╠═5d3cb008-43ba-4d2a-8004-698457a627d3
+# ╠═07ce4885-674e-4dde-a8b1-dad8b8157cb1
